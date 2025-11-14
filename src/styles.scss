@@ -1,0 +1,35 @@
+@use 'sass:color';
+
+:root {
+	--app-bg: #05060a;
+	--app-card: #10121a;
+	--app-text: #f5f7ff;
+	--app-accent: #76b3fa;
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	font-family:
+		'Inter',
+		'Segoe UI',
+		system-ui,
+		-apple-system,
+		BlinkMacSystemFont,
+		sans-serif;
+	background: radial-gradient(circle at top, color.adjust(#0e141b, $lightness: 4%), var(--app-bg));
+	min-height: 100vh;
+	color: var(--app-text);
+}
+
+.app-theme {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 2rem;
+}

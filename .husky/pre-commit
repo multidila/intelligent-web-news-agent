@@ -1,0 +1,60 @@
+#!/usr/bin/env node
+
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const util = require('util');
+const { exec } = require('child_process');
+
+const execAsync = util.promisify(exec);
+const writeFileAsync = util.promisify(fs.writeFile);
+
+const tempFilePath = path.resolve(process.env.TEMP || os.tmpdir(), './has-lint-errors.json');
+
+async function run() {
+	console.log('Stage 1. Pre-Commit Hook. Lint Fix + Prettier: Started');
+
+	const frames = ['-', '\\', '|', '/'];
+	let frameIndex = 0;
+	const spinner = setInterval(() => {
+		process.stdout.write(`\r${frames[frameIndex]} Running lint-staged (fix mode)...`);
+		frameIndex = (frameIndex + 1) % frames.length;
+	}, 120);
+
+	let hasLintErrors = false;
+
+	try {
+		await execAsync('npx lint-staged --config .lintstaged-precommit-rc --no-stash');
+	} catch (error) {
+		hasLintErrors = true;
+		process.stdout.write('\n');
+		console.error('Stage 1. Lint-staged reported issues that could not be fixed automatically.');
+		if (error.stdout) {
+			console.error(error.stdout);
+		}
+		if (error.stderr) {
+			console.error(error.stderr);
+		}
+		if (!error.stdout && !error.stderr && error.message) {
+			console.error(error.message);
+		}
+	} finally {
+		clearInterval(spinner);
+		process.stdout.write('\r');
+	}
+
+	try {
+		await writeFileAsync(tempFilePath, JSON.stringify({ hasLintErrors }), 'utf8');
+	} catch (writeError) {
+		console.error('Stage 1. Unable to persist lint status file.', writeError);
+	}
+
+	console.log('Stage 1. Pre-Commit Hook. Lint Fix + Prettier: Finished');
+	// Always allow the commit-msg hook to run; final decision is deferred to stage 2.
+	process.exit(0);
+}
+
+run().catch((error) => {
+	console.error('\nStage 1. Pre-Commit Hook encountered an unexpected error.', error);
+	process.exit(1);
+});

@@ -1,0 +1,13 @@
+{
+	// Додаткові відомості: https://go.microsoft.com/fwlink/?linkid=827846
+	"recommendations": [
+		"angular.ng-template",
+		"dbaeumer.vscode-eslint",
+		"esbenp.prettier-vscode",
+		"firsttris.vscode-jest-runner",
+		"SonarSource.sonarlint-vscode",
+		"eamodio.gitlens",
+		"donjayamanne.githistory",
+		"streetsidesoftware.code-spell-checker"
+	]
+}

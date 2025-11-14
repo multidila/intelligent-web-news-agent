@@ -1,0 +1,88 @@
+#!/usr/bin/env node
+
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const util = require('util');
+const { exec } = require('child_process');
+
+const execAsync = util.promisify(exec);
+const readFileAsync = util.promisify(fs.readFile);
+const unlinkAsync = util.promisify(fs.unlink);
+
+const tempFilePath = path.resolve(process.env.TEMP || os.tmpdir(), './has-lint-errors.json');
+
+function formatTimestamp() {
+	const now = new Date();
+	return now.toTimeString().slice(0, 8);
+}
+
+async function run() {
+	console.log('Stage 2. Commit-Msg Hook. Lint Verification: Started');
+
+	const ticker = setInterval(() => {
+		process.stdout.write(`\r[${formatTimestamp()}] Verifying staged changes...`);
+	}, 1000);
+
+	let hasLintErrors = false;
+
+	try {
+		const raw = await readFileAsync(tempFilePath, 'utf8');
+		const parsed = JSON.parse(raw);
+		hasLintErrors = Boolean(parsed.hasLintErrors);
+	} catch (readError) {
+		clearInterval(ticker);
+		process.stdout.write('\r');
+		console.error('\nStage 2. Unable to read lint status file.', readError);
+		process.exit(1);
+	}
+
+	try {
+		await unlinkAsync(tempFilePath);
+	} catch (unlinkError) {
+		if (unlinkError.code !== 'ENOENT') {
+			console.warn('Stage 2. Unable to remove lint status file.', unlinkError);
+		}
+	}
+
+	if (!hasLintErrors) {
+		clearInterval(ticker);
+		process.stdout.write('\r');
+		console.log('Stage 2. Commit-Msg Hook. No outstanding lint errors. Proceeding with commit.');
+		process.exit(0);
+	}
+
+	let lintFailed = false;
+	try {
+		await execAsync('npx lint-staged --config .lintstaged-commitmsg-rc --no-stash');
+	} catch (error) {
+		lintFailed = true;
+		process.stdout.write('\n');
+		console.error('Stage 2. Lint-staged detected unresolved issues.');
+		if (error.stdout) {
+			console.error(error.stdout);
+		}
+		if (error.stderr) {
+			console.error(error.stderr);
+		}
+		if (!error.stdout && !error.stderr && error.message) {
+			console.error(error.message);
+		}
+	} finally {
+		clearInterval(ticker);
+		process.stdout.write('\r');
+	}
+
+	if (lintFailed) {
+		console.error('Stage 2. Commit-Msg Hook. Blocking commit due to lint errors.');
+		process.exit(1);
+	}
+
+	console.log('Stage 2. Commit-Msg Hook. Verification passed.');
+	process.exit(0);
+}
+
+run().catch((error) => {
+	console.error('\nStage 2. Commit-Msg Hook encountered an unexpected error.', error);
+	process.exit(1);
+});

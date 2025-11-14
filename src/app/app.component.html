@@ -1,0 +1,25 @@
+<main class="app-card">
+	<section class="app-card__header">
+		<p class="eyebrow">Intelligent Web News Agent</p>
+		<h1>
+			{{ title | titlecase }}
+		</h1>
+		<p class="subtitle">Automated monitoring and information filtering</p>
+	</section>
+
+	<section class="app-card__status">
+		<span class="badge">Status</span>
+		<p>{{ status() }}</p>
+		<small>Repository is ready - tooling is already wired up.</small>
+	</section>
+
+	<section class="app-card__list">
+		<h2>Base build capabilities</h2>
+		<ul>
+			<li *ngFor="let highlight of highlights">
+				<span class="dot" aria-hidden="true"></span>
+				{{ highlight }}
+			</li>
+		</ul>
+	</section>
+</main>

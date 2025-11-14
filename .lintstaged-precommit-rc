@@ -1,0 +1,16 @@
+{
+	"*.{js,ts,tsx}": [
+		"prettier --write",
+		"eslint --fix --rule 'import/no-cycle: off' --rule 'import/no-deprecated: off'"
+	],
+	"*.json": [
+		"prettier --write"
+	],
+	"*.html": [
+		"eslint --fix --rule 'import/no-cycle: off' --rule 'import/no-deprecated: off'",
+		"prettier --write"
+	],
+	"*.scss": [
+		"prettier --write"
+	]
+}
