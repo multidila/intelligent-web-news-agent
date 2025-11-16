@@ -1,0 +1,175 @@
+.news-list {
+	padding: 2rem;
+	max-width: 1200px;
+	margin: 0 auto;
+}
+
+.list-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 2rem;
+	flex-wrap: wrap;
+	gap: 1rem;
+
+	h2 {
+		margin: 0;
+		color: #2c3e50;
+	}
+}
+
+.filters {
+	display: flex;
+	gap: 1rem;
+	align-items: center;
+}
+
+.filter-btn,
+.sort-btn {
+	padding: 0.5rem 1rem;
+	border: 2px solid #dee2e6;
+	background: white;
+	border-radius: 6px;
+	cursor: pointer;
+	transition: all 0.2s;
+	font-weight: 500;
+
+	&.active {
+		background: #007bff;
+		color: white;
+		border-color: #007bff;
+	}
+
+	&:hover:not(.active) {
+		border-color: #007bff;
+		color: #007bff;
+	}
+}
+
+.sort-buttons {
+	display: flex;
+	gap: 0.5rem;
+}
+
+.news-items {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.news-item {
+	background: white;
+	border-radius: 8px;
+	padding: 1.5rem;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	cursor: pointer;
+	transition: all 0.2s;
+	border-left: 4px solid #007bff;
+
+	&.read {
+		opacity: 0.7;
+		border-left-color: #6c757d;
+	}
+
+	&:hover {
+		transform: translateX(4px);
+		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+	}
+}
+
+.news-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: start;
+	gap: 1rem;
+	margin-bottom: 0.75rem;
+}
+
+.news-title {
+	margin: 0;
+	font-size: 1.25rem;
+	color: #2c3e50;
+	flex: 1;
+}
+
+.relevance-badge {
+	padding: 0.25rem 0.75rem;
+	border-radius: 20px;
+	font-size: 0.875rem;
+	font-weight: 600;
+	flex-shrink: 0;
+
+	&.high {
+		background: #d4edda;
+		color: #155724;
+	}
+
+	&.medium {
+		background: #fff3cd;
+		color: #856404;
+	}
+
+	&.low {
+		background: #f8d7da;
+		color: #721c24;
+	}
+}
+
+.news-description {
+	color: #6c757d;
+	margin: 0 0 1rem 0;
+	line-height: 1.6;
+}
+
+.news-meta {
+	display: flex;
+	gap: 1rem;
+	flex-wrap: wrap;
+	font-size: 0.875rem;
+	color: #6c757d;
+	margin-bottom: 0.75rem;
+
+	span {
+		display: flex;
+		align-items: center;
+	}
+
+	.source {
+		font-weight: 600;
+		color: #007bff;
+	}
+
+	.category {
+		padding: 0.125rem 0.5rem;
+		background: #e9ecef;
+		border-radius: 4px;
+	}
+}
+
+.news-keywords {
+	display: flex;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+}
+
+.keyword {
+	padding: 0.25rem 0.5rem;
+	background: #f8f9fa;
+	border: 1px solid #dee2e6;
+	border-radius: 4px;
+	font-size: 0.75rem;
+	color: #495057;
+}
+
+.no-news {
+	text-align: center;
+	padding: 3rem;
+	background: white;
+	border-radius: 8px;
+	color: #6c757d;
+
+	p {
+		margin: 0;
+		font-size: 1.125rem;
+	}
+}

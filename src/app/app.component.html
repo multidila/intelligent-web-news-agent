@@ -1,25 +1,22 @@
-<main class="app-card">
-	<section class="app-card__header">
-		<p class="eyebrow">Intelligent Web News Agent</p>
-		<h1>
-			{{ title | titlecase }}
-		</h1>
-		<p class="subtitle">Automated monitoring and information filtering</p>
-	</section>
-
-	<section class="app-card__status">
-		<span class="badge">Status</span>
-		<p>{{ status() }}</p>
-		<small>Repository is ready - tooling is already wired up.</small>
-	</section>
-
-	<section class="app-card__list">
-		<h2>Base build capabilities</h2>
-		<ul>
-			<li *ngFor="let highlight of highlights">
-				<span class="dot" aria-hidden="true"></span>
-				{{ highlight }}
+<div class="app-container">
+	<nav class="navbar">
+		<div class="nav-brand">
+			<h1>Intelligent Web News Agent</h1>
+		</div>
+		<ul class="nav-menu">
+			<li>
+				<a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
+			</li>
+			<li>
+				<a routerLink="/news" routerLinkActive="active">News Feed</a>
+			</li>
+			<li>
+				<a routerLink="/config" routerLinkActive="active">Configuration</a>
 			</li>
 		</ul>
-	</section>
-</main>
+	</nav>
+
+	<main class="main-content">
+		<router-outlet></router-outlet>
+	</main>
+</div>

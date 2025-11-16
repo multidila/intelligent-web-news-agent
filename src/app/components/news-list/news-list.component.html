@@ -1,0 +1,70 @@
+<div class="news-list">
+	<div class="list-header">
+		<h2>News Feed ({{ filteredNews.length }})</h2>
+
+		<div class="filters">
+			<button type="button" class="filter-btn" [class.active]="showOnlyUnread" (click)="toggleUnread()">
+				{{ showOnlyUnread ? 'Show All' : 'Unread Only' }}
+			</button>
+
+			<div class="sort-buttons">
+				<button
+					type="button"
+					class="sort-btn"
+					[class.active]="sortBy === 'relevance'"
+					(click)="changeSorting('relevance')"
+				>
+					Relevance
+				</button>
+				<button
+					type="button"
+					class="sort-btn"
+					[class.active]="sortBy === 'date'"
+					(click)="changeSorting('date')"
+				>
+					Date
+				</button>
+			</div>
+		</div>
+	</div>
+
+	<div class="news-items" *ngIf="filteredNews.length > 0; else noNews">
+		<article
+			*ngFor="let item of filteredNews"
+			class="news-item"
+			[class.read]="item.isRead"
+			tabindex="0"
+			role="button"
+			(click)="openNews(item)"
+			(keydown.enter)="openNews(item)"
+			(keydown.space)="openNews(item)"
+		>
+			<div class="news-header">
+				<h3 class="news-title">{{ item.title }}</h3>
+				<span class="relevance-badge" [class]="getRelevanceClass(item.relevanceScore)">
+					{{ item.relevanceScore }}
+				</span>
+			</div>
+
+			<p class="news-description">{{ item.description }}</p>
+
+			<div class="news-meta">
+				<span class="source">{{ item.source }}</span>
+				<span class="category" *ngIf="item.category">{{ item.category }}</span>
+				<span class="date">{{ getTimeAgo(item.pubDate) }}</span>
+			</div>
+
+			<div class="news-keywords" *ngIf="item.keywords.length > 0">
+				<span class="keyword" *ngFor="let keyword of item.keywords.slice(0, 5)">
+					{{ keyword }}
+				</span>
+			</div>
+		</article>
+	</div>
+
+	<ng-template #noNews>
+		<div class="no-news">
+			<p>No news available. Start monitoring to fetch news.</p>
+		</div>
+	</ng-template>
+</div>

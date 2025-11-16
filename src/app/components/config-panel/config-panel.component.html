@@ -1,0 +1,128 @@
+<div class="config-panel" *ngIf="config">
+	<h2>Configuration</h2>
+
+	<section class="config-section">
+		<h3>News Sources</h3>
+
+		<div class="add-source">
+			<input type="text" [(ngModel)]="newSource.name" placeholder="Source name (e.g., BBC News)" class="input" />
+
+			<input type="url" [(ngModel)]="newSource.url" placeholder="RSS Feed URL" class="input" />
+
+			<select [(ngModel)]="newSource.type" class="select">
+				<option value="rss">RSS</option>
+				<option value="http">HTTP</option>
+			</select>
+
+			<button type="button" (click)="addSource()" class="btn btn-primary">Add Source</button>
+		</div>
+
+		<div class="sources-list">
+			<div *ngFor="let source of config.sources" class="source-item">
+				<div class="source-info">
+					<label class="checkbox-label">
+						<input type="checkbox" [checked]="source.enabled" (change)="toggleSource(source.id)" />
+						<span class="source-name">{{ source.name }}</span>
+					</label>
+					<span class="source-type">{{ source.type }}</span>
+					<a [href]="source.url" target="_blank" class="source-url">{{ source.url }}</a>
+				</div>
+				<button type="button" (click)="removeSource(source.id)" class="btn-remove">×</button>
+			</div>
+		</div>
+	</section>
+
+	<section class="config-section">
+		<h3>Filter Keywords (Include)</h3>
+
+		<div class="keyword-input">
+			<input
+				type="text"
+				[(ngModel)]="newKeyword"
+				(keyup.enter)="addKeyword()"
+				placeholder="Add keyword to search for"
+				class="input"
+			/>
+			<button type="button" (click)="addKeyword()" class="btn btn-primary">Add</button>
+		</div>
+
+		<div class="keywords-list">
+			<span *ngFor="let keyword of config.filters.keywords" class="keyword-tag">
+				{{ keyword }}
+				<button type="button" (click)="removeKeyword(keyword)" class="tag-remove">×</button>
+			</span>
+			<span *ngIf="config.filters.keywords.length === 0" class="empty-message">
+				No keywords. All news will be shown.
+			</span>
+		</div>
+	</section>
+
+	<section class="config-section">
+		<h3>Exclude Keywords</h3>
+
+		<div class="keyword-input">
+			<input
+				type="text"
+				[(ngModel)]="newExcludeKeyword"
+				(keyup.enter)="addExcludeKeyword()"
+				placeholder="Add keyword to exclude"
+				class="input"
+			/>
+			<button type="button" (click)="addExcludeKeyword()" class="btn btn-primary">Add</button>
+		</div>
+
+		<div class="keywords-list">
+			<span *ngFor="let keyword of config.filters.excludeKeywords" class="keyword-tag exclude">
+				{{ keyword }}
+				<button type="button" (click)="removeExcludeKeyword(keyword)" class="tag-remove">×</button>
+			</span>
+			<span *ngIf="config.filters.excludeKeywords.length === 0" class="empty-message">
+				No exclude keywords.
+			</span>
+		</div>
+	</section>
+
+	<section class="config-section">
+		<h3>Agent Settings</h3>
+
+		<div class="setting-item">
+			<label>
+				Check Interval (minutes):
+				<input
+					type="number"
+					[value]="config.checkInterval"
+					(change)="updateCheckInterval(+$any($event.target).value)"
+					min="1"
+					max="1440"
+					class="input small"
+				/>
+			</label>
+		</div>
+
+		<div class="setting-item">
+			<label>
+				Maximum News Items:
+				<input
+					type="number"
+					[value]="config.maxNewsItems"
+					(change)="updateMaxNewsItems(+$any($event.target).value)"
+					min="10"
+					max="1000"
+					class="input small"
+				/>
+			</label>
+		</div>
+
+		<div class="setting-item">
+			<label class="checkbox-label">
+				<input type="checkbox" [checked]="config.autoRefresh" (change)="toggleAutoRefresh()" />
+				Auto Refresh
+			</label>
+		</div>
+	</section>
+
+	<section class="config-actions">
+		<button type="button" (click)="exportConfig()" class="btn btn-secondary"> Export Config </button>
+		<button type="button" (click)="resetConfig()" class="btn btn-danger"> Reset to Defaults </button>
+	</section>
+</div>

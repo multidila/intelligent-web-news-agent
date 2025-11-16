@@ -1,0 +1,68 @@
+<div class="dashboard">
+	<header class="dashboard-header">
+		<h1>Intelligent Web News Agent</h1>
+		<div class="monitoring-status" [class.active]="isMonitoring">
+			<span class="status-indicator"></span>
+			{{ isMonitoring ? 'Monitoring Active' : 'Monitoring Stopped' }}
+		</div>
+	</header>
+
+	<div class="stats-grid">
+		<div class="stat-card">
+			<div class="stat-label">Total News</div>
+			<div class="stat-value">{{ stats?.totalNews || 0 }}</div>
+		</div>
+
+		<div class="stat-card">
+			<div class="stat-label">Filtered News</div>
+			<div class="stat-value">{{ stats?.filteredNews || 0 }}</div>
+		</div>
+
+		<div class="stat-card">
+			<div class="stat-label">Sources Checked</div>
+			<div class="stat-value">{{ stats?.sourcesChecked || 0 }}</div>
+		</div>
+
+		<div class="stat-card">
+			<div class="stat-label">Enabled Sources</div>
+			<div class="stat-value">{{ enabledSourcesCount }}</div>
+		</div>
+
+		<div class="stat-card">
+			<div class="stat-label">Errors</div>
+			<div class="stat-value error">{{ stats?.errors || 0 }}</div>
+		</div>
+
+		<div class="stat-card">
+			<div class="stat-label">Last Update</div>
+			<div class="stat-value small">
+				{{ stats?.lastUpdate ? (stats?.lastUpdate | date: 'short') : 'Never' }}
+			</div>
+		</div>
+	</div>
+
+	<div class="actions">
+		<button
+			type="button"
+			class="btn btn-primary"
+			(click)="startMonitoring()"
+			[disabled]="isMonitoring || enabledSourcesCount === 0"
+		>
+			Start Monitoring
+		</button>
+
+		<button type="button" class="btn btn-secondary" (click)="stopMonitoring()" [disabled]="!isMonitoring">
+			Stop Monitoring
+		</button>
+
+		<button type="button" class="btn btn-success" (click)="refreshNews()" [disabled]="enabledSourcesCount === 0">
+			Refresh Now
+		</button>
+
+		<button type="button" class="btn btn-danger" (click)="clearNews()"> Clear All News </button>
+	</div>
+
+	<div class="info-message" *ngIf="enabledSourcesCount === 0">
+		<p>⚠️ No enabled sources. Please configure at least one news source to start monitoring.</p>
+	</div>
+</div>
