@@ -1,3 +1,7 @@
 export const API_ENDPOINTS = {
-	corsProxy: 'https://api.allorigins.win/raw?url=',
+	corsProxies: [
+		'https://api.allorigins.win/raw?url=',
+		'https://corsproxy.io/?',
+		'https://api.codetabs.com/v1/proxy?quest=',
+	],
 } as const;

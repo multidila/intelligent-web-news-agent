@@ -8,4 +8,7 @@ export interface AgentConfig {
 	maxNewsItems: number;
 	autoRefresh: boolean;
 	stopWords: string[];
+	retryDelay: number;
+	requestDelay: number;
+	maxRetries: number;
 }

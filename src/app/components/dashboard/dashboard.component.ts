@@ -16,8 +16,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
 	private readonly _destroy$ = new Subject<void>();
 
 	public stats: MonitoringStats | null = null;
-	public isMonitoring = false;
+	public monitoring = false;
 	public enabledSourcesCount = 0;
+	public loading = false;
+	public progress = 0;
 
 	constructor(
 		public newsAgent: NewsAgentService,
@@ -29,8 +31,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
 			this.stats = stats;
 		});
 
-		this.newsAgent.isMonitoring$.pipe(takeUntil(this._destroy$)).subscribe((isMonitoring) => {
-			this.isMonitoring = isMonitoring;
+		this.newsAgent.monitoring$.pipe(takeUntil(this._destroy$)).subscribe((monitoring) => {
+			this.monitoring = monitoring;
+		});
+
+		this.newsAgent.loading$.pipe(takeUntil(this._destroy$)).subscribe((loading) => {
+			this.loading = loading;
+		});
+
+		this.newsAgent.progress$.pipe(takeUntil(this._destroy$)).subscribe((progress) => {
+			this.progress = Math.round(progress);
 		});
 
 		this._configService.config$.pipe(takeUntil(this._destroy$)).subscribe((config) => {
@@ -52,7 +62,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
 	}
 
 	public refreshNews(): void {
-		this.newsAgent.fetchAllNews();
+		if (this.loading) {
+			this.newsAgent.cancelFetch();
+		} else {
+			this.newsAgent.fetchAllNews();
+		}
 	}
 
 	public clearNews(): void {

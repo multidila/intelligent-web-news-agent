@@ -2,8 +2,7 @@ export interface NewsSource {
 	id: string;
 	name: string;
 	url: string;
-	type: 'rss' | 'http';
+	type: 'rss';
 	enabled: boolean;
 	lastChecked?: Date;
-	lastModified?: number;
 }

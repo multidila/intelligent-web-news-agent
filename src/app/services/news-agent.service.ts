@@ -1,12 +1,11 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, forkJoin, Observable, of } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { BehaviorSubject, concatMap, delay, from, Observable, of, Subject } from 'rxjs';
+import { catchError, takeUntil, tap, toArray } from 'rxjs/operators';
 
 import { STORAGE_KEYS } from '../constants';
-import { MonitoringStats, NewsItem, NewsSource } from '../models';
+import { MonitoringStats, NewsItem } from '../models';
 import { AgentConfigService } from './agent-config.service';
 import { RssFeedParserService } from './rss-feed-parser.service';
-import { WebsiteChange, WebsiteMonitorService } from './website-monitor.service';
 
 @Injectable({
 	providedIn: 'root',
@@ -21,81 +20,68 @@ export class NewsAgentService {
 		lastUpdate: new Date(),
 		errors: 0,
 	});
-	private readonly _websiteChangesSubject = new BehaviorSubject<WebsiteChange[]>([]);
-	private readonly _isMonitoringSubject = new BehaviorSubject<boolean>(false);
+	private readonly _monitoringSubject = new BehaviorSubject<boolean>(false);
+	private readonly _loadingSubject = new BehaviorSubject<boolean>(false);
+	private readonly _progressSubject = new BehaviorSubject<number>(0);
 
 	private _monitoringInterval?: ReturnType<typeof setInterval>;
+	private _manualStop = false;
+	private readonly _sourceErrors = new Map<string, number>();
+	private readonly _maxSourceErrors = 5;
+	private readonly _cancelRequests$ = new Subject<void>();
 
 	public news$: Observable<NewsItem[]> = this._newsSubject.asObservable();
 	public stats$: Observable<MonitoringStats> = this._statsSubject.asObservable();
-	public websiteChanges$: Observable<WebsiteChange[]> = this._websiteChangesSubject.asObservable();
-	public isMonitoring$: Observable<boolean> = this._isMonitoringSubject.asObservable();
+	public monitoring$: Observable<boolean> = this._monitoringSubject.asObservable();
+	public loading$: Observable<boolean> = this._loadingSubject.asObservable();
+	public progress$: Observable<number> = this._progressSubject.asObservable();
 
 	constructor(
 		private readonly _rssParser: RssFeedParserService,
 		private readonly _configService: AgentConfigService,
-		private readonly _httpMonitor: WebsiteMonitorService,
 	) {
 		this._loadNews();
 		this._initAutoRefresh();
 	}
 
 	private _loadNews(): void {
+		const stored = localStorage.getItem(this._storageKey);
+		if (!stored) {
+			return;
+		}
 		try {
-			const stored = localStorage.getItem(this._storageKey);
-			if (stored) {
-				const news = JSON.parse(stored).map((item: NewsItem) => ({
-					...item,
-					pubDate: new Date(item.pubDate),
-				}));
-				this._newsSubject.next(news);
-			}
-		} catch (error) {
-			console.error('Error loading news:', error);
+			const news = JSON.parse(stored).map((item: NewsItem) => ({
+				...item,
+				pubDate: new Date(item.pubDate),
+			}));
+			this._newsSubject.next(news);
+		} catch {
+			return;
 		}
 	}
 
 	private _saveNews(news: NewsItem[]): void {
 		try {
 			localStorage.setItem(this._storageKey, JSON.stringify(news));
-		} catch (error) {
-			console.error('Error saving news:', error);
+		} catch {
+			return;
 		}
 	}
 
 	private _initAutoRefresh(): void {
 		this._configService.config$.subscribe((config) => {
-			if (config.autoRefresh && !this._isMonitoringSubject.value) {
+			if (this._manualStop) {
+				return;
+			}
+			if (config.autoRefresh && !this._monitoringSubject.value) {
 				this.startMonitoring();
-			} else if (!config.autoRefresh && this._isMonitoringSubject.value) {
+			} else if (!config.autoRefresh && this._monitoringSubject.value) {
 				this.stopMonitoring();
 			}
 		});
 	}
 
-	private _checkHttpSources(sources: NewsSource[]): void {
-		const urls = sources.map((s) => s.url);
-		this._httpMonitor.checkMultipleWebsites(urls).subscribe({
-			next: (changes) => {
-				this._websiteChangesSubject.next(changes);
-				changes.forEach((change) => {
-					const source = sources.find((s) => s.url === change.url);
-					if (source) {
-						this._updateSourceLastChecked(source.id);
-						if (change.changed) {
-							console.log(`Website changed: ${source.name}`);
-						}
-					}
-				});
-			},
-			error: (error: unknown) => {
-				console.error('Error checking HTTP sources:', error);
-				this._incrementErrors();
-			},
-		});
-	}
-
-	private _processNews(newNews: NewsItem[]): void {
+	private _processNews(newNews: NewsItem[], newNewsCount?: number): void {
 		const existingNews = this._newsSubject.value;
 		const existingIds = new Set(existingNews.map((n) => n.id));
 
@@ -109,6 +95,15 @@ export class NewsAgentService {
 
 		this._newsSubject.next(limitedNews);
 		this._saveNews(limitedNews);
+
+		if (newNewsCount !== undefined) {
+			const currentStats = this._statsSubject.value;
+			this._statsSubject.next({
+				...currentStats,
+				totalNews: allNews.length,
+				filteredNews: limitedNews.length,
+			});
+		}
 	}
 
 	private _applyFilters(news: NewsItem[]): NewsItem[] {
@@ -181,28 +176,36 @@ export class NewsAgentService {
 		this._configService.updateConfig({ sources });
 	}
 
-	private _updateStats(sourcesChecked: number, totalNews: number): void {
-		const filteredNews = this._newsSubject.value.length;
+	private _updateStats(sourcesChecked: number): void {
+		const currentStats = this._statsSubject.value;
 		this._statsSubject.next({
-			totalNews,
-			filteredNews,
+			...currentStats,
 			sourcesChecked,
 			lastUpdate: new Date(),
-			errors: this._statsSubject.value.errors,
 		});
 	}
 
-	private _incrementErrors(): void {
+	private _updateErrorCount(): void {
+		const failedSourcesCount = Array.from(this._sourceErrors.values()).filter(
+			(count) => count >= this._maxSourceErrors,
+		).length;
+
 		const stats = this._statsSubject.value;
-		this._statsSubject.next({ ...stats, errors: stats.errors + 1 });
+		this._statsSubject.next({ ...stats, errors: failedSourcesCount });
 	}
 
 	public startMonitoring(): void {
-		if (this._isMonitoringSubject.value) {
+		if (this._monitoringSubject.value) {
 			return;
 		}
 
-		this._isMonitoringSubject.next(true);
+		this._manualStop = false;
+		this._sourceErrors.clear();
+		this._statsSubject.next({
+			...this._statsSubject.value,
+			errors: 0,
+		});
+		this._monitoringSubject.next(true);
 		this.fetchAllNews();
 
 		const config = this._configService.getConfig();
@@ -214,11 +217,18 @@ export class NewsAgentService {
 	}
 
 	public stopMonitoring(): void {
+		this._manualStop = true;
 		if (this._monitoringInterval) {
 			clearInterval(this._monitoringInterval);
 			this._monitoringInterval = undefined;
 		}
-		this._isMonitoringSubject.next(false);
+		this._monitoringSubject.next(false);
+	}
+
+	public cancelFetch(): void {
+		this._cancelRequests$.next();
+		this._loadingSubject.next(false);
+		this._progressSubject.next(0);
 	}
 
 	public fetchAllNews(): void {
@@ -226,40 +236,99 @@ export class NewsAgentService {
 		const enabledSources = config.sources.filter((s) => s.enabled);
 
 		if (enabledSources.length === 0) {
-			console.warn('No enabled sources');
 			return;
 		}
 
-		const rssSources = enabledSources.filter((s) => s.type === 'rss');
-		const httpSources = enabledSources.filter((s) => s.type === 'http');
+		if (this._loadingSubject.value) {
+			return;
+		}
 
-		const rssRequests = rssSources.map((source) =>
-			this._rssParser.parseRssFeed(source.url, source.name).pipe(
-				tap(() => this._updateSourceLastChecked(source.id)),
-				catchError((error: unknown) => {
-					console.error(`Error fetching ${source.name}:`, error);
-					this._incrementErrors();
-					return of([]);
-				}),
-			),
-		);
+		this._loadingSubject.next(true);
+		this._progressSubject.next(0);
 
-		forkJoin(rssRequests.length > 0 ? rssRequests : [of([])]).subscribe({
-			next: (results: NewsItem[][]) => {
-				const allNews = results.flat();
-				this._processNews(allNews);
-
-				if (httpSources.length > 0) {
-					this._checkHttpSources(httpSources);
-				}
-
-				this._updateStats(enabledSources.length, allNews.length);
-			},
-			error: (error: unknown) => {
-				console.error('Error fetching news:', error);
-				this._incrementErrors();
-			},
+		const availableRssSources = enabledSources.filter((source) => {
+			const errorCount = this._sourceErrors.get(source.id) || 0;
+			if (errorCount >= this._maxSourceErrors) {
+				return false;
+			}
+			return true;
 		});
+
+		const totalSources = availableRssSources.length;
+
+		if (totalSources === 0) {
+			this._loadingSubject.next(false);
+			this._progressSubject.next(0);
+			return;
+		}
+
+		let processedSources = 0;
+		let successfulSources = 0;
+		let accumulatedNews: NewsItem[] = [];
+		const requestDelay = config.requestDelay;
+
+		from(availableRssSources)
+			.pipe(
+				concatMap((source, index) =>
+					of(source).pipe(
+						delay(index === 0 ? 0 : requestDelay),
+						concatMap(() =>
+							this._rssParser.parseRssFeed(source.url, source.name).pipe(
+								tap((newsItems) => {
+									this._updateSourceLastChecked(source.id);
+									this._sourceErrors.set(source.id, 0);
+									processedSources++;
+									successfulSources++;
+									const progress = (processedSources / totalSources) * 100;
+									this._progressSubject.next(progress);
+
+									accumulatedNews = [...accumulatedNews, ...newsItems];
+									this._processNews(accumulatedNews, accumulatedNews.length);
+									this._updateStats(successfulSources);
+								}),
+								catchError((error: unknown) => {
+									console.error(`Error fetching ${source.name}:`, error);
+									const currentErrors = this._sourceErrors.get(source.id) || 0;
+									const newErrorCount = currentErrors + 1;
+									this._sourceErrors.set(source.id, newErrorCount);
+									this._updateErrorCount();
+									processedSources++;
+									const progress = (processedSources / totalSources) * 100;
+									this._progressSubject.next(progress);
+									return of([]);
+								}),
+							),
+						),
+					),
+				),
+				toArray(),
+				takeUntil(this._cancelRequests$),
+			)
+			.subscribe({
+				next: () => {
+					this._loadingSubject.next(false);
+					this._progressSubject.next(100);
+
+					setTimeout(() => {
+						if (!this._loadingSubject.value) {
+							this._progressSubject.next(0);
+						}
+					}, 1000);
+				},
+				error: (error: unknown) => {
+					console.error('Error fetching news:', error);
+					this._updateErrorCount();
+
+					this._loadingSubject.next(false);
+					this._progressSubject.next(0);
+				},
+				complete: () => {
+					if (this._loadingSubject.value) {
+						this._loadingSubject.next(false);
+						this._progressSubject.next(0);
+					}
+				},
+			});
 	}
 
 	public markAsRead(newsId: string): void {
@@ -271,6 +340,12 @@ export class NewsAgentService {
 	public clearAllNews(): void {
 		this._newsSubject.next([]);
 		localStorage.removeItem(this._storageKey);
-		this._updateStats(0, 0);
+		this._statsSubject.next({
+			totalNews: 0,
+			filteredNews: 0,
+			sourcesChecked: 0,
+			lastUpdate: new Date(),
+			errors: 0,
+		});
 	}
 }

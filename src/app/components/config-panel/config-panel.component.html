@@ -87,13 +87,14 @@
 
 		<div class="setting-item">
 			<label>
-				Check Interval (minutes):
+				Check Interval (seconds):
 				<input
 					type="number"
-					[value]="config.checkInterval"
-					(change)="updateCheckInterval(+$any($event.target).value)"
-					min="1"
-					max="1440"
+					[value]="config.checkInterval / 1000"
+					(change)="updateCheckInterval(+$any($event.target).value * 1000)"
+					min="10"
+					max="3600"
+					step="1"
 					class="input small"
 				/>
 			</label>
@@ -111,6 +112,53 @@
 					class="input small"
 				/>
 			</label>
+		</div>
+
+		<div class="setting-item">
+			<label>
+				Retry Delay (milliseconds):
+				<input
+					type="number"
+					[value]="config.retryDelay"
+					(change)="updateRetryDelay(+$any($event.target).value)"
+					min="500"
+					max="10000"
+					step="500"
+					class="input small"
+				/>
+			</label>
+			<small class="help-text">Delay between retry attempts when a request fails</small>
+		</div>
+
+		<div class="setting-item">
+			<label>
+				Request Delay (milliseconds):
+				<input
+					type="number"
+					[value]="config.requestDelay"
+					(change)="updateRequestDelay(+$any($event.target).value)"
+					min="100"
+					max="5000"
+					step="100"
+					class="input small"
+				/>
+			</label>
+			<small class="help-text">Delay between consecutive requests to different sources</small>
+		</div>
+
+		<div class="setting-item">
+			<label>
+				Max Retries:
+				<input
+					type="number"
+					[value]="config.maxRetries"
+					(change)="updateMaxRetries(+$any($event.target).value)"
+					min="1"
+					max="10"
+					class="input small"
+				/>
+			</label>
+			<small class="help-text">Maximum number of retry attempts for failed requests</small>
 		</div>
 
 		<div class="setting-item">

@@ -1,9 +1,15 @@
 <div class="dashboard">
 	<header class="dashboard-header">
-		<h1>Intelligent Web News Agent</h1>
-		<div class="monitoring-status" [class.active]="isMonitoring">
+		<div class="loading-indicator" *ngIf="loading">
+			<span class="loading-text">Loading news... {{ progress }}%</span>
+			<div class="progress-bar-container">
+				<div class="progress-bar" [style.width.%]="progress"></div>
+			</div>
+		</div>
+
+		<div class="monitoring-status" [class.active]="monitoring">
 			<span class="status-indicator"></span>
-			{{ isMonitoring ? 'Monitoring Active' : 'Monitoring Stopped' }}
+			{{ monitoring ? 'Monitoring Active' : 'Monitoring Stopped' }}
 		</div>
 	</header>
 
@@ -46,20 +52,33 @@
 			type="button"
 			class="btn btn-primary"
 			(click)="startMonitoring()"
-			[disabled]="isMonitoring || enabledSourcesCount === 0"
+			[disabled]="monitoring || enabledSourcesCount === 0 || loading"
 		>
 			Start Monitoring
 		</button>
 
-		<button type="button" class="btn btn-secondary" (click)="stopMonitoring()" [disabled]="!isMonitoring">
+		<button type="button" class="btn btn-secondary" (click)="stopMonitoring()" [disabled]="!monitoring">
 			Stop Monitoring
 		</button>
 
-		<button type="button" class="btn btn-success" (click)="refreshNews()" [disabled]="enabledSourcesCount === 0">
-			Refresh Now
+		<button
+			type="button"
+			class="btn btn-success"
+			(click)="refreshNews()"
+			[disabled]="enabledSourcesCount === 0 && !loading"
+		>
+			<span *ngIf="!loading">Refresh News</span>
+			<span *ngIf="loading">Cancel</span>
 		</button>
 
-		<button type="button" class="btn btn-danger" (click)="clearNews()"> Clear All News </button>
+		<button
+			type="button"
+			class="btn btn-danger"
+			(click)="clearNews()"
+			[disabled]="!stats?.totalNews || stats?.totalNews === 0 || loading"
+		>
+			Clear News
+		</button>
 	</div>
 
 	<div class="info-message" *ngIf="enabledSourcesCount === 0">

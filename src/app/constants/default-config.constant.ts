@@ -32,7 +32,10 @@ export const DEFAULT_AGENT_CONFIG: AgentConfig = {
 	},
 	checkInterval: 15 * 60 * 1000,
 	maxNewsItems: 100,
-	autoRefresh: true,
+	autoRefresh: false,
+	retryDelay: 3000,
+	requestDelay: 2000,
+	maxRetries: 3,
 	stopWords: [
 		'the',
 		'a',

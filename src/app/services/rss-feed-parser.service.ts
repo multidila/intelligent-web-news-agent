@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { Observable, throwError, timer } from 'rxjs';
+import { catchError, map, mergeMap, retryWhen } from 'rxjs/operators';
 
 import { API_ENDPOINTS } from '../constants';
 import { NewsItem } from '../models';
@@ -11,7 +11,7 @@ import { AgentConfigService } from './agent-config.service';
 	providedIn: 'root',
 })
 export class RssFeedParserService {
-	private readonly _corsProxy = API_ENDPOINTS.corsProxy;
+	private readonly _corsProxies = API_ENDPOINTS.corsProxies;
 
 	constructor(
 		private readonly _http: HttpClient,
@@ -101,15 +101,46 @@ export class RssFeedParserService {
 			.map(([word]) => word);
 	}
 
-	public parseRssFeed(url: string, sourceName: string): Observable<NewsItem[]> {
-		const proxyUrl = `${this._corsProxy}${encodeURIComponent(url)}`;
+	private _fetchWithProxy(url: string, proxyUrl: string, sourceName: string): Observable<NewsItem[]> {
+		return this._http
+			.get(proxyUrl, { responseType: 'text' })
+			.pipe(map((xmlText) => this._parseXML(xmlText, sourceName, url)));
+	}
 
-		return this._http.get(proxyUrl, { responseType: 'text' }).pipe(
-			map((xmlText) => this._parseXML(xmlText, sourceName, url)),
-			catchError((error: unknown) => {
-				console.error(`Error fetching RSS feed from ${url}:`, error);
-				return of([]);
-			}),
+	private _tryAllProxies(url: string, sourceName: string, proxyIndex: number = 0): Observable<NewsItem[]> {
+		if (proxyIndex >= this._corsProxies.length) {
+			return throwError(() => new Error('All proxies failed'));
+		}
+
+		const proxy = this._corsProxies[proxyIndex];
+		const proxyUrl = `${proxy}${encodeURIComponent(url)}`;
+
+		return this._fetchWithProxy(url, proxyUrl, sourceName).pipe(
+			catchError(() => this._tryAllProxies(url, sourceName, proxyIndex + 1)),
+		);
+	}
+
+	public parseRssFeed(url: string, sourceName: string): Observable<NewsItem[]> {
+		const config = this._configService.getConfig();
+		const maxRetries = config.maxRetries;
+		const retryDelay = config.retryDelay;
+
+		return this._tryAllProxies(url, sourceName).pipe(
+			retryWhen((errors) =>
+				errors.pipe(
+					mergeMap((error, index) => {
+						const shouldRetry = index < maxRetries;
+
+						if (shouldRetry) {
+							const delay = retryDelay * Math.pow(2, index);
+							return timer(delay);
+						}
+
+						console.error(`${sourceName} failed after ${maxRetries} attempts`);
+						return throwError(() => error);
+					}),
+				),
+			),
 		);
 	}
 }

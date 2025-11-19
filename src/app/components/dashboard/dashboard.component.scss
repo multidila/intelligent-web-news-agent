@@ -6,15 +6,11 @@
 
 .dashboard-header {
 	display: flex;
-	justify-content: space-between;
+	justify-content: flex-end;
 	align-items: center;
+	gap: 1.5rem;
 	margin-bottom: 2rem;
-
-	h1 {
-		margin: 0;
-		font-size: 2rem;
-		color: #2c3e50;
-	}
+	flex-wrap: wrap;
 }
 
 .monitoring-status {
@@ -24,7 +20,9 @@
 	padding: 0.5rem 1rem;
 	border-radius: 20px;
 	background: #ecf0f1;
-	font-weight: 500;
+	color: #6c757d;
+	font-weight: 700;
+	font-size: 1.1rem;
 
 	&.active {
 		background: #d4edda;
@@ -37,10 +35,62 @@
 	}
 
 	.status-indicator {
-		width: 12px;
-		height: 12px;
+		width: 14px;
+		height: 14px;
 		border-radius: 50%;
 		background: #6c757d;
+	}
+}
+
+.loading-indicator {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	min-width: 250px;
+
+	.progress-bar-container {
+		width: 100%;
+		height: 8px;
+		background: #e9ecef;
+		border-radius: 4px;
+		overflow: hidden;
+		box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+	}
+
+	.progress-bar {
+		height: 100%;
+		background: linear-gradient(90deg, #007bff, #0056b3);
+		transition: width 0.3s ease;
+		border-radius: 4px;
+		position: relative;
+		overflow: hidden;
+
+		&::after {
+			content: '';
+			position: absolute;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+			animation: shimmer 1.5s infinite;
+		}
+	}
+
+	.loading-text {
+		font-size: 0.875rem;
+		color: #6c757d;
+		font-weight: 500;
+		text-align: center;
+	}
+}
+
+@keyframes shimmer {
+	0% {
+		transform: translateX(-100%);
+	}
+	100% {
+		transform: translateX(100%);
 	}
 }
 

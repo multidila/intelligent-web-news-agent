@@ -49,7 +49,7 @@ export class ConfigPanelComponent implements OnInit, OnDestroy {
 			id: Date.now().toString(),
 			name: this.newSource.name,
 			url: this.newSource.url,
-			type: this.newSource.type as 'rss' | 'http',
+			type: 'rss',
 			enabled: true,
 		};
 
@@ -115,6 +115,18 @@ export class ConfigPanelComponent implements OnInit, OnDestroy {
 
 	public updateMaxNewsItems(value: number): void {
 		this._configService.updateConfig({ maxNewsItems: value });
+	}
+
+	public updateRetryDelay(value: number): void {
+		this._configService.updateConfig({ retryDelay: value });
+	}
+
+	public updateRequestDelay(value: number): void {
+		this._configService.updateConfig({ requestDelay: value });
+	}
+
+	public updateMaxRetries(value: number): void {
+		this._configService.updateConfig({ maxRetries: value });
 	}
 
 	public toggleAutoRefresh(): void {
